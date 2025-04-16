@@ -1,5 +1,5 @@
 import * as PIXI from 'pixi.js';
-import { sound } from './sound';
+import {SoundPlayer} from "./SoundPlayer";
 
 // Asset paths
 const IMAGES_PATH = 'assets/images/';
@@ -34,7 +34,10 @@ const textureCache: Record<string, PIXI.Texture> = {};
 const spineCache: Record<string, any> = {};
 
 export class AssetLoader {
+    private soundPlayer: SoundPlayer;
+
     constructor() {
+        this.soundPlayer = new SoundPlayer();
         PIXI.Assets.init({ basePath: '' });
     }
 
@@ -68,7 +71,6 @@ export class AssetLoader {
                 console.error('Error loading spine animations:', error);
             }
 
-            await this.loadSounds();
             console.log('Assets loaded successfully');
         } catch (error) {
             console.error('Error loading assets:', error);
@@ -76,15 +78,17 @@ export class AssetLoader {
         }
     }
 
-    private async loadSounds(): Promise<void> {
+    async loadSounds(): Promise<SoundPlayer> {
         try {
             SOUNDS.forEach(soundFile => {
-                sound.add(soundFile.split('.')[0], SOUNDS_PATH + soundFile);
+                this.soundPlayer.add(soundFile.split('.')[0], SOUNDS_PATH + soundFile);
             });
         } catch (error) {
             console.error('Error loading sounds:', error);
             throw error;
         }
+
+        return this.soundPlayer;
     }
 
     public static getTexture(name: string): PIXI.Texture {

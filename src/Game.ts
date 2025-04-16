@@ -36,11 +36,12 @@ export class Game {
     public async init(): Promise<void> {
         try {
             await this.assetLoader.loadAssets();
+            const soundPlayer = await this.assetLoader.loadSounds();
 
-            this.slotMachine = new SlotMachine(this.app);
+            this.slotMachine = new SlotMachine(this.app, soundPlayer);
             this.app.stage.addChild(this.slotMachine.container);
 
-            this.ui = new UI(this.app, this.slotMachine);
+            this.ui = new UI(this.app, this.slotMachine, soundPlayer);
             this.app.stage.addChild(this.ui.container);
 
             this.app.ticker.add(this.update.bind(this));

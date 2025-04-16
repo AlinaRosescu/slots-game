@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 import 'pixi-spine';
 import { Reel } from './Reel';
-import { sound } from '../utils/sound';
+import {SoundPlayer} from '../utils/SoundPlayer';
 import { AssetLoader } from '../utils/AssetLoader';
 import {Spine} from "pixi-spine";
 
@@ -21,9 +21,11 @@ export class SlotMachine {
     private spinButton: PIXI.Sprite | null = null;
     private frameSpine: Spine | null = null;
     private winAnimation: Spine | null = null;
+    private soundPlayer: SoundPlayer;
 
-    constructor(app: PIXI.Application) {
+    constructor(app: PIXI.Application, soundPlayer: SoundPlayer) {
         this.app = app;
+        this.soundPlayer = soundPlayer;
         this.container = new PIXI.Container();
         this.reelsContainer = new PIXI.Container();
         this.reels = [];
@@ -114,7 +116,7 @@ export class SlotMachine {
         this.isSpinning = true;
 
         // Play spin sound
-        sound.play('Reel spin');
+        this.soundPlayer.play('Reel spin');
 
         // Disable spin button
         if (this.spinButton) {
@@ -143,6 +145,8 @@ export class SlotMachine {
                 // If this is the last reel, check for wins and enable spin button
                 if (i === this.reels.length - 1) {
                     setTimeout(() => {
+                        // Stop spin sound
+                        this.soundPlayer.stop('Reel spin');
                         this.checkWin();
                         this.isSpinning = false;
 
@@ -161,7 +165,7 @@ export class SlotMachine {
         const randomWin = Math.random() < 0.3; // 30% chance of winning
 
         if (randomWin) {
-            sound.play('win');
+            this.soundPlayer.play('win');
             console.log('Winner!');
 
             if (this.winAnimation) {

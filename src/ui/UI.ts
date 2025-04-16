@@ -1,17 +1,19 @@
 import * as PIXI from 'pixi.js';
 import { SlotMachine } from '../slots/SlotMachine';
 import { AssetLoader } from '../utils/AssetLoader';
-import { sound } from '../utils/sound';
+import {SoundPlayer} from '../utils/SoundPlayer';
 
 export class UI {
     public container: PIXI.Container;
     private app: PIXI.Application;
     private slotMachine: SlotMachine;
+    private soundPlayer: SoundPlayer;
     private spinButton!: PIXI.Sprite;
 
-    constructor(app: PIXI.Application, slotMachine: SlotMachine) {
+    constructor(app: PIXI.Application, slotMachine: SlotMachine, soundPlayer: SoundPlayer) {
         this.app = app;
         this.slotMachine = slotMachine;
+        this.soundPlayer = soundPlayer;
         this.container = new PIXI.Container();
 
         this.createSpinButton();
@@ -43,7 +45,7 @@ export class UI {
     }
 
     private onSpinButtonClick(): void {
-        sound.play('Spin button');
+        this.soundPlayer.play('Spin button');
 
         this.slotMachine.spin();
     }
