@@ -36,6 +36,8 @@ export class SlotMachine {
 
         this.createReels();
 
+        this.createReelsMask();
+
         this.initSpineAnimations();
     }
 
@@ -83,6 +85,20 @@ export class SlotMachine {
         dividerGraphic.endFill();
         dividerGraphic.y = reel.container.y + REEL_HEIGHT + POSITION_OFFSET;
         this.reelsContainer.addChild(dividerGraphic);
+    }
+
+    private createReelsMask(): void {
+        const mask = new PIXI.Graphics();
+        mask.beginFill(0xffffff);
+        mask.drawRect(
+            POSITION_OFFSET / 2 * -1,
+            0,
+            SYMBOL_SIZE * SYMBOLS_PER_REEL + POSITION_OFFSET,
+            (SYMBOL_SIZE + REEL_SPACING) * REEL_COUNT
+        );
+        mask.endFill();
+        this.reelsContainer.mask = mask;
+        this.reelsContainer.addChild(mask);
     }
 
     public update(delta: number): void {
@@ -166,6 +182,8 @@ export class SlotMachine {
 
                 this.frameSpine.y = (REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1)) / 2;
                 this.frameSpine.x = (SYMBOL_SIZE * SYMBOLS_PER_REEL) / 2;
+                this.frameSpine.scale.x  = 0.8;
+                this.frameSpine.scale.y  = 0.95;
 
                 if (this.frameSpine.state.hasAnimation('idle')) {
                     this.frameSpine.state.setAnimation(0, 'idle', true);
