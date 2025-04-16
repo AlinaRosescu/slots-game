@@ -10,6 +10,7 @@ const SYMBOLS_PER_REEL = 6;
 const SYMBOL_SIZE = 150;
 const REEL_HEIGHT = SYMBOL_SIZE;
 const REEL_SPACING = 10;
+const POSITION_OFFSET = 20;
 
 export class SlotMachine {
     public container: PIXI.Container;
@@ -41,10 +42,10 @@ export class SlotMachine {
             const background = new PIXI.Graphics();
             background.beginFill(0x000000, 0.5);
             background.drawRect(
-                -20,
-                -20,
-                SYMBOL_SIZE * SYMBOLS_PER_REEL + 40, // Width now based on symbols per reel
-                REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1) + 40 // Height based on reel count
+                POSITION_OFFSET * -1,
+                POSITION_OFFSET * -1,
+                SYMBOL_SIZE * SYMBOLS_PER_REEL + POSITION_OFFSET * 2, // Width now based on symbols per reel
+                REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1) + POSITION_OFFSET * 2 // Height based on reel count
             );
             background.endFill();
             this.container.addChild(background);
