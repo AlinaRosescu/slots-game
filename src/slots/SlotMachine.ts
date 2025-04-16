@@ -14,6 +14,7 @@ const POSITION_OFFSET = 20;
 
 export class SlotMachine {
     public container: PIXI.Container;
+    private reelsContainer: PIXI.Container;
     private reels: Reel[];
     private app: PIXI.Application;
     private isSpinning: boolean = false;
@@ -24,6 +25,7 @@ export class SlotMachine {
     constructor(app: PIXI.Application) {
         this.app = app;
         this.container = new PIXI.Container();
+        this.reelsContainer = new PIXI.Container();
         this.reels = [];
 
         // Center the slot machine
@@ -55,13 +57,32 @@ export class SlotMachine {
     }
 
     private createReels(): void {
+        this.container.addChild(this.reelsContainer);
         // Create each reel
         for (let i = 0; i < REEL_COUNT; i++) {
             const reel = new Reel(SYMBOLS_PER_REEL, SYMBOL_SIZE);
             reel.container.y = i * (REEL_HEIGHT + REEL_SPACING);
-            this.container.addChild(reel.container);
+            this.reelsContainer.addChild(reel.container);
             this.reels.push(reel);
+
+            if (i < REEL_COUNT - 1) {
+                this.createReelDivider(reel);
+            }
         }
+    }
+
+    private createReelDivider(reel: Reel): void {
+        const dividerGraphic = new PIXI.Graphics();
+        dividerGraphic.beginFill(0xFFB1D2, 1);
+        dividerGraphic.drawRect(
+            POSITION_OFFSET * -1,
+            POSITION_OFFSET * -1,
+            SYMBOL_SIZE * SYMBOLS_PER_REEL + POSITION_OFFSET * 2, // Width now based on symbols per reel
+            REEL_SPACING
+        );
+        dividerGraphic.endFill();
+        dividerGraphic.y = reel.container.y + REEL_HEIGHT + POSITION_OFFSET;
+        this.reelsContainer.addChild(dividerGraphic);
     }
 
     public update(delta: number): void {
