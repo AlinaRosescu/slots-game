@@ -15,6 +15,7 @@ const POSITION_OFFSET = 20;
 export class SlotMachine {
     public container: PIXI.Container;
     private reelsContainer: PIXI.Container;
+    public winAnimationContainer: PIXI.Container;
     private reels: Reel[];
     private app: PIXI.Application;
     private isSpinning: boolean = false;
@@ -28,11 +29,12 @@ export class SlotMachine {
         this.soundPlayer = soundPlayer;
         this.container = new PIXI.Container();
         this.reelsContainer = new PIXI.Container();
+        this.winAnimationContainer = new PIXI.Container();
         this.reels = [];
 
         // Center the slot machine
-        this.container.x = this.app.screen.width / 2 - ((SYMBOL_SIZE * SYMBOLS_PER_REEL) / 2);
-        this.container.y = this.app.screen.height / 2 - ((REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1)) / 2);
+        this.container.x = this.winAnimationContainer.x = this.app.screen.width / 2 - ((SYMBOL_SIZE * SYMBOLS_PER_REEL) / 2);
+        this.container.y = this.winAnimationContainer.y = this.app.screen.height / 2 - ((REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1)) / 2);
 
         this.createBackground();
 
@@ -169,7 +171,19 @@ export class SlotMachine {
             console.log('Winner!');
 
             if (this.winAnimation) {
-                // TODO: Play the win animation found in "big-boom-h" spine
+                // Play the win animation found in "big-boom-h" spine
+                if (this.winAnimation.state.hasAnimation('start')) {
+                    this.winAnimation.state.setAnimation(0, 'start', false);
+                    this.winAnimation.state.addListener({
+                        complete: () => {
+                            if (this.winAnimation) {
+                                this.winAnimation.state.clearTrack(0);
+                                this.winAnimation.visible = false;
+                            }
+                        }
+                    });
+                    this.winAnimation.visible = true;
+                }
             }
         }
     }
@@ -200,12 +214,12 @@ export class SlotMachine {
             if (winSpineData) {
                 this.winAnimation = new Spine(winSpineData.spineData);
 
-                this.winAnimation.x = (REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1)) / 2;
-                this.winAnimation.y = (SYMBOL_SIZE * SYMBOLS_PER_REEL) / 2;
+                this.winAnimation.x = (SYMBOL_SIZE * SYMBOLS_PER_REEL) / 2;
+                this.winAnimation.y = (REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1)) / 2;
 
                 this.winAnimation.visible = false;
 
-                this.container.addChild(this.winAnimation);
+                this.winAnimationContainer.addChild(this.winAnimation);
             }
         } catch (error) {
             console.error('Error initializing spine animations:', error);

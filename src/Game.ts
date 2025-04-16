@@ -44,6 +44,7 @@ export class Game {
             this.ui = new UI(this.app, this.slotMachine, soundPlayer);
             this.app.stage.addChild(this.ui.container);
 
+            this.app.stage.addChild(this.slotMachine.winAnimationContainer);
             this.app.ticker.add(this.update.bind(this));
 
             console.log('Game initialized successfully');
