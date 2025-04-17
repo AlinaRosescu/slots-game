@@ -7,6 +7,10 @@ import {Spine} from "pixi-spine";
 import {SlotMachineConfig} from "./SlotMachineConfig";
 
 const POSITION_OFFSET = 20;
+const DEFAULT_FRAME_SPINE_WIDTH = 1242;
+const DEFAULT_FRAME_SPINE_HEIGHT = 775;
+const FRAME_SPINE_BORDER_WIDTH = 100;
+const FRAME_SPINE_BORDER_HEIGHT = 140;
 
 export class SlotMachine {
     public container: PIXI.Container;
@@ -204,8 +208,12 @@ export class SlotMachine {
 
                 this.frameSpine.y = (this.reelHeight * this.config.REEL_COUNT + this.config.REEL_SPACING * (this.config.REEL_COUNT - 1)) / 2;
                 this.frameSpine.x = (this.config.SYMBOL_SIZE * this.config.SYMBOLS_PER_REEL) / 2;
-                this.frameSpine.scale.x  = 0.8;
-                this.frameSpine.scale.y  = 0.95;
+
+                // scale frame spine animation depending on reels area width
+                const reelsWidth = this.config.SYMBOLS_PER_REEL * this.config.SYMBOL_SIZE + FRAME_SPINE_BORDER_WIDTH;
+                const reelsHeight = this.config.REEL_COUNT * this.config.SYMBOL_SIZE + FRAME_SPINE_BORDER_HEIGHT;
+                this.frameSpine.scale.x = reelsWidth / DEFAULT_FRAME_SPINE_WIDTH;
+                this.frameSpine.scale.y = reelsHeight / DEFAULT_FRAME_SPINE_HEIGHT;
 
                 if (this.frameSpine.state.hasAnimation('idle')) {
                     this.frameSpine.state.setAnimation(0, 'idle', true);
