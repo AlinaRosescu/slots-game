@@ -95,9 +95,9 @@ export class SlotMachine {
         const mask = new PIXI.Graphics();
         mask.beginFill(0xffffff);
         mask.drawRect(
-            POSITION_OFFSET / 2 * -1,
+            POSITION_OFFSET * -1,
             0,
-            SYMBOL_SIZE * SYMBOLS_PER_REEL + POSITION_OFFSET,
+            SYMBOL_SIZE * SYMBOLS_PER_REEL + POSITION_OFFSET * 2,
             (SYMBOL_SIZE + REEL_SPACING) * REEL_COUNT
         );
         mask.endFill();
@@ -129,13 +129,13 @@ export class SlotMachine {
         for (let i = 0; i < this.reels.length; i++) {
             setTimeout(() => {
                 this.reels[i].startSpin();
-            }, i * 200);
+            }, i * 300);
         }
 
         // Stop all reels after a delay
         setTimeout(() => {
             this.stopSpin();
-        }, 500 + (this.reels.length - 1) * 200);
+        }, 500 + (this.reels.length - 1) * 300);
 
     }
 

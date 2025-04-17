@@ -26,8 +26,7 @@ export class UI {
             this.spinButton.anchor.set(0.5);
             this.spinButton.x = this.app.screen.width / 2;
             this.spinButton.y = this.app.screen.height - 50;
-            this.spinButton.width = 150;
-            this.spinButton.height = 80;
+            this.spinButton.scale.set(0.8);
 
             this.spinButton.interactive = true;
             this.spinButton.cursor = 'pointer';
@@ -51,10 +50,10 @@ export class UI {
     }
 
     private onButtonOver(event: PIXI.FederatedPointerEvent): void {
-        (event.currentTarget as PIXI.Sprite).scale.set(1.05);
+        (event.currentTarget as PIXI.Sprite).scale.set(0.9);
     }
 
     private onButtonOut(event: PIXI.FederatedPointerEvent): void {
-        (event.currentTarget as PIXI.Sprite).scale.set(1.0);
+        (event.currentTarget as PIXI.Sprite).scale.set(0.8);
     }
 }
