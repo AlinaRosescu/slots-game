@@ -3,6 +3,9 @@ import { SlotMachine } from './slots/SlotMachine';
 import { AssetLoader } from './utils/AssetLoader';
 import { UI } from './ui/UI';
 
+const APP_WIDTH = 1280;
+const APP_HEIGHT = 800;
+
 export class Game {
     private app: PIXI.Application;
     private slotMachine!: SlotMachine;
@@ -11,8 +14,8 @@ export class Game {
 
     constructor() {
         this.app = new PIXI.Application({
-            width: 1280,
-            height: 800,
+            width: APP_WIDTH,
+            height: APP_HEIGHT,
             backgroundColor: 0x1099bb,
             resolution: window.devicePixelRatio || 1,
             autoDensity: true,
@@ -38,7 +41,7 @@ export class Game {
             await this.assetLoader.loadAssets();
             const soundPlayer = await this.assetLoader.loadSounds();
 
-            this.slotMachine = new SlotMachine(this.app, soundPlayer);
+            this.slotMachine = new SlotMachine(APP_WIDTH, APP_HEIGHT, soundPlayer);
             this.app.stage.addChild(this.slotMachine.container);
 
             this.ui = new UI(this.app, this.slotMachine, soundPlayer);
@@ -65,17 +68,17 @@ export class Game {
         const gameContainer = document.getElementById('game-container');
         if (!gameContainer) return;
 
-        const w = gameContainer.clientWidth;
-        const h = gameContainer.clientHeight;
+        const gameContainerWidth = gameContainer.clientWidth;
+        const gameContainerHeight = gameContainer.clientHeight;
 
         // Calculate scale to fit the container while maintaining aspect ratio
-        const scale = Math.min(w / 1280, h / 800);
+        const scale = Math.min(gameContainerWidth / APP_WIDTH, gameContainerHeight / APP_HEIGHT);
 
         this.app.stage.scale.set(scale);
 
         // Center the stage
-        this.app.renderer.resize(w, h);
-        this.app.stage.position.set(w / 2, h / 2);
-        this.app.stage.pivot.set(1280 / 2, 800 / 2);
+        this.app.renderer.resize(gameContainerWidth, gameContainerHeight);
+        this.app.stage.position.set(gameContainerWidth / 2, gameContainerHeight / 2);
+        this.app.stage.pivot.set(APP_WIDTH / 2, APP_HEIGHT / 2);
     }
 }

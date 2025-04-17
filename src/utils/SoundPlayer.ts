@@ -13,7 +13,7 @@ export class SoundPlayer {
             autoplay: false,
             loop: false,
             volume: 0.5,
-            onend: function () {
+            onend: function (): void {
                 console.log('Finished!');
             }
         });

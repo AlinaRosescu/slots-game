@@ -11,21 +11,24 @@ const SYMBOL_SIZE = 150;
 const REEL_HEIGHT = SYMBOL_SIZE;
 const REEL_SPACING = 10;
 const POSITION_OFFSET = 20;
+const CHANCE_OF_WINNING = 90;
+const SPIN_DELAY = 300;
+const STOP_SPIN_DELAY = 400;
+const SPIN_DURATION = 500;
+const CHECK_WIN_DELAY = 500;
 
 export class SlotMachine {
     public container: PIXI.Container;
     private reelsContainer: PIXI.Container;
     public winAnimationContainer: PIXI.Container;
     private reels: Reel[];
-    private app: PIXI.Application;
     private isSpinning: boolean = false;
     private spinButton: PIXI.Sprite | null = null;
     private frameSpine: Spine | null = null;
     private winAnimation: Spine | null = null;
     private soundPlayer: SoundPlayer;
 
-    constructor(app: PIXI.Application, soundPlayer: SoundPlayer) {
-        this.app = app;
+    constructor(screenWidth: number, screenHeight: number, soundPlayer: SoundPlayer) {
         this.soundPlayer = soundPlayer;
         this.container = new PIXI.Container();
         this.reelsContainer = new PIXI.Container();
@@ -33,8 +36,8 @@ export class SlotMachine {
         this.reels = [];
 
         // Center the slot machine
-        this.container.x = this.winAnimationContainer.x = this.app.screen.width / 2 - ((SYMBOL_SIZE * SYMBOLS_PER_REEL) / 2);
-        this.container.y = this.winAnimationContainer.y = this.app.screen.height / 2 - ((REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1)) / 2);
+        this.container.x = this.winAnimationContainer.x = screenWidth / 2 - ((SYMBOL_SIZE * SYMBOLS_PER_REEL) / 2);
+        this.container.y = this.winAnimationContainer.y = screenHeight / 2 - ((REEL_HEIGHT * REEL_COUNT + REEL_SPACING * (REEL_COUNT - 1)) / 2);
 
         this.createBackground();
 
@@ -129,17 +132,16 @@ export class SlotMachine {
         for (let i = 0; i < this.reels.length; i++) {
             setTimeout(() => {
                 this.reels[i].startSpin();
-            }, i * 300);
+            }, i * SPIN_DELAY);
         }
 
         // Stop all reels after a delay
         setTimeout(() => {
             this.stopSpin();
-        }, 500 + (this.reels.length - 1) * 300);
-
+        }, SPIN_DURATION + (this.reels.length - 1) * SPIN_DELAY);
     }
 
-    private stopSpin(): void {
+    public stopSpin(): void {
         for (let i = 0; i < this.reels.length; i++) {
             setTimeout(() => {
                 this.reels[i].stopSpin();
@@ -156,34 +158,37 @@ export class SlotMachine {
                             this.spinButton.texture = AssetLoader.getTexture('button_spin.png');
                             this.spinButton.interactive = true;
                         }
-                    }, 500);
+                    }, CHECK_WIN_DELAY);
                 }
-            }, i * 400);
+            }, i * STOP_SPIN_DELAY);
         }
     }
 
     private checkWin(): void {
         // Simple win check - just for demonstration
-        const randomWin = Math.random() < 0.3; // 30% chance of winning
+        const randomWin = Math.random() < CHANCE_OF_WINNING; // chance of winning
 
         if (randomWin) {
             this.soundPlayer.play('win');
             console.log('Winner!');
+            // Play the win animation found in "big-boom-h" spine
+            this.playWinAnimation();
+        }
+    }
 
-            if (this.winAnimation) {
-                // Play the win animation found in "big-boom-h" spine
-                if (this.winAnimation.state.hasAnimation('start')) {
-                    this.winAnimation.state.setAnimation(0, 'start', false);
-                    this.winAnimation.state.addListener({
-                        complete: () => {
-                            if (this.winAnimation) {
-                                this.winAnimation.state.clearTrack(0);
-                                this.winAnimation.visible = false;
-                            }
+    private playWinAnimation(): void {
+        if (this.winAnimation) {
+            if (this.winAnimation.state.hasAnimation('start')) {
+                this.winAnimation.state.setAnimation(0, 'start', false);
+                this.winAnimation.state.addListener({
+                    complete: () => {
+                        if (this.winAnimation) {
+                            this.winAnimation.state.clearTrack(0);
+                            this.winAnimation.visible = false;
                         }
-                    });
-                    this.winAnimation.visible = true;
-                }
+                    }
+                });
+                this.winAnimation.visible = true;
             }
         }
     }
@@ -224,5 +229,9 @@ export class SlotMachine {
         } catch (error) {
             console.error('Error initializing spine animations:', error);
         }
+    }
+
+    public get reelsAreSpinning(): boolean {
+        return this.isSpinning;
     }
 }

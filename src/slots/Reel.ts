@@ -86,7 +86,7 @@ export class Reel {
         this.position += this.speed * delta / FPS;
 
         // Move symbols horizontally
-        this.moveSymbols(delta);
+        this.moveSymbols();
 
         // If we're stopping, slow down the reel
         if (!this.isSpinning && this.speed > 0) {
@@ -100,7 +100,7 @@ export class Reel {
         }
     }
 
-    private moveSymbols(delta: number): void {
+    private moveSymbols(): void {
         for (let j = 0; j < this.symbols.length; j++) {
             const symbol = this.symbols[j];
             const symbolPosition = ((j + this.position) % this.symbols.length);
