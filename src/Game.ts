@@ -2,6 +2,7 @@ import * as PIXI from 'pixi.js';
 import { SlotMachine } from './slots/SlotMachine';
 import { AssetLoader } from './utils/AssetLoader';
 import { UI } from './ui/UI';
+import {defaultSlotConfig} from "./slots/SlotMachineConfig";
 
 const APP_WIDTH = 1280;
 const APP_HEIGHT = 800;
@@ -41,7 +42,7 @@ export class Game {
             await this.assetLoader.loadAssets();
             const soundPlayer = await this.assetLoader.loadSounds();
 
-            this.slotMachine = new SlotMachine(APP_WIDTH, APP_HEIGHT, soundPlayer);
+            this.slotMachine = new SlotMachine(defaultSlotConfig, APP_WIDTH, APP_HEIGHT, soundPlayer);
             this.app.stage.addChild(this.slotMachine.container);
 
             this.ui = new UI(this.app, this.slotMachine, soundPlayer);
