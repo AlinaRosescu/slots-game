@@ -5,6 +5,7 @@ export interface SlotMachineConfig {
     SYMBOL_SIZE: number;
     REEL_SPACING: number;
     CHANCE_OF_WINNING: number;
+    HAS_FREE_SPINS: boolean;
     CHANCE_OF_FREE_SPINS: number;
     NR_OF_FREE_SPINS: number;
     SPIN_DELAY: number;
@@ -20,7 +21,8 @@ export const defaultSlotConfig: SlotMachineConfig = {
     SYMBOL_SIZE: 150,
     REEL_SPACING: 10,
     CHANCE_OF_WINNING: 30,
-    CHANCE_OF_FREE_SPINS: 0,
+    HAS_FREE_SPINS: true,
+    CHANCE_OF_FREE_SPINS: 30,
     NR_OF_FREE_SPINS: 3,
     SPIN_DELAY: 300,
     STOP_SPIN_DELAY: 400,

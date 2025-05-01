@@ -5,6 +5,7 @@ import {SoundPlayer} from '../utils/SoundPlayer';
 import { AssetLoader } from '../utils/AssetLoader';
 import {Spine} from "pixi-spine";
 import {SlotMachineConfig} from "./SlotMachineConfig";
+import {FreeSpins} from "./FreeSpins";
 
 const POSITION_OFFSET = 20;
 const DEFAULT_FRAME_SPINE_WIDTH = 1242;
@@ -24,9 +25,8 @@ export class SlotMachine {
     private winAnimation: Spine | null = null;
     private soundPlayer: SoundPlayer;
     private reelHeight: number;
-    private isFreeSpins: boolean = false;
-    private nrOfFreeSpins: number = 0;
     private nrOfReelsFinished: number = 0;
+    private freeSpins: FreeSpins | undefined;
 
     constructor(config: SlotMachineConfig, screenWidth: number, screenHeight: number, soundPlayer: SoundPlayer) {
         this.config = config;
@@ -36,6 +36,9 @@ export class SlotMachine {
         this.reelsContainer = new PIXI.Container();
         this.winAnimationContainer = new PIXI.Container();
         this.reels = [];
+        if (this.config.HAS_FREE_SPINS) {
+            this.freeSpins = new FreeSpins(this.config.NR_OF_FREE_SPINS);
+        }
 
         // Center the slot machine
         this.container.x = this.winAnimationContainer.x =
@@ -64,7 +67,10 @@ export class SlotMachine {
             this.isSpinning = false;
             this.checkWin();
 
-            if (!this.isFreeSpins && this.spinButton) {
+            if (this.spinButton) {
+                if (this.freeSpins && this.freeSpins.isFreeSpins) {
+                    return;
+                }
                 this.spinButton.texture = AssetLoader.getTexture('button_spin.png');
                 this.spinButton.interactive = true;
             }
@@ -177,27 +183,20 @@ export class SlotMachine {
      private async checkWin(): Promise<void> {
         // Simple win check - just for demonstration
         const randomWin = Math.random() < this.config.CHANCE_OF_WINNING; // chance of winning
-        if (!this.isFreeSpins) {
-            const freeSpinsWin = Math.random() < this.config.CHANCE_OF_FREE_SPINS; // chance of winning FS
 
-            if (freeSpinsWin) {
-                console.log('Start FS');
-                this.isFreeSpins = true;
-                this.nrOfFreeSpins++;
-                this.spin();
-                return;
-            }
-        } else {
-            if (this.nrOfFreeSpins > 0) {
-                if (this.nrOfFreeSpins < this.config.NR_OF_FREE_SPINS) {
-                    console.log('continue FS' + this.nrOfFreeSpins);
-                    this.nrOfFreeSpins++;
+        if (this.freeSpins) {
+            if (!this.freeSpins.isFreeSpins) {
+                const freeSpinsWin = Math.random() < this.config.CHANCE_OF_FREE_SPINS; // chance of winning FS
+
+                if (freeSpinsWin) {
+                    this.freeSpins.start();
                     this.spin();
                     return;
-                } else {
-                    console.log('End FS' + this.nrOfFreeSpins);
-                    this.isFreeSpins = false;
-                    this.nrOfFreeSpins = 0;
+                }
+            } else {
+                if (this.freeSpins.continue()) {
+                    this.spin();
+                    return;
                 }
             }
         }
