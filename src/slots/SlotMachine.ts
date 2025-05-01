@@ -26,6 +26,7 @@ export class SlotMachine {
     private reelHeight: number;
     private isFreeSpins: boolean = false;
     private nrOfFreeSpins: number = 0;
+    private nrOfReelsFinished: number = 0;
 
     constructor(config: SlotMachineConfig, screenWidth: number, screenHeight: number, soundPlayer: SoundPlayer) {
         this.config = config;
@@ -49,6 +50,25 @@ export class SlotMachine {
         this.createReelsMask();
 
         this.initSpineAnimations();
+
+        window.addEventListener('snapGrid', this.onReelSnapGrid.bind(this));
+    }
+
+    private onReelSnapGrid() {
+        this.nrOfReelsFinished++;
+        // If this is the last reel, check for wins and enable spin button
+        if (this.nrOfReelsFinished === this.config.REEL_COUNT) {
+            this.nrOfReelsFinished = 0;
+            // Stop spin sound
+            this.soundPlayer.stop('Reel spin');
+            this.isSpinning = false;
+            this.checkWin();
+
+            if (!this.isFreeSpins && this.spinButton) {
+                this.spinButton.texture = AssetLoader.getTexture('button_spin.png');
+                this.spinButton.interactive = true;
+            }
+        }
     }
 
     private createBackground(): void {
@@ -147,29 +167,14 @@ export class SlotMachine {
     }
 
     public stopSpin(): void {
-        for (let i = 0; i < this.reels.length; i++) {
+        this.reels.forEach((reel: Reel, index: number) => {
             setTimeout(() => {
-                this.reels[i].stopSpin();
-
-                // If this is the last reel, check for wins and enable spin button
-                if (i === this.reels.length - 1) {
-                    setTimeout(() => {
-                        // Stop spin sound
-                        this.soundPlayer.stop('Reel spin');
-                        this.checkWin();
-                        this.isSpinning = false;
-
-                        if (this.spinButton) {
-                            this.spinButton.texture = AssetLoader.getTexture('button_spin.png');
-                            this.spinButton.interactive = true;
-                        }
-                    }, this.config.CHECK_WIN_DELAY);
-                }
-            }, i * this.config.STOP_SPIN_DELAY);
-        }
+                reel.stopSpin();
+            }, index * this.config.STOP_SPIN_DELAY);
+        });
     }
 
-    private checkWin(): void {
+     private async checkWin(): Promise<void> {
         // Simple win check - just for demonstration
         const randomWin = Math.random() < this.config.CHANCE_OF_WINNING; // chance of winning
         if (!this.isFreeSpins) {
@@ -200,9 +205,30 @@ export class SlotMachine {
         if (randomWin) {
             this.soundPlayer.play('win');
             console.log('Winner!');
+            let randomWinline = this.getRandomWinline();
+            await this.playSymbolWinAnimation(randomWinline);
             // Play the win animation found in "big-boom-h" spine
             this.playWinAnimation();
         }
+    }
+
+    private getRandomWinline():number[] {
+        const randomWinlineId: number = Math.floor(Math.random() * this.config.WINLINES.length);
+        return this.config.WINLINES[randomWinlineId];
+    }
+
+    private playSymbolWinAnimation(winline: number[]): Promise<void> {
+        return new Promise((resolve) => {
+            let onComplete: Function | null = null;
+            this.reels.forEach((reel: Reel, index: number) => {
+                const reelStartIndex = index * this.config.SYMBOLS_PER_REEL;
+                const reelWinLine: number[] = winline.slice(reelStartIndex, reelStartIndex + this.config.SYMBOLS_PER_REEL);
+                if (index === this.reels.length - 1) {
+                    onComplete = resolve;
+                }
+                reel.playSymbolsWinAnimation(reelWinLine, onComplete);
+            });
+        });
     }
 
     private playWinAnimation(): void {

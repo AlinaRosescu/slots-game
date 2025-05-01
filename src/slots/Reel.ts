@@ -1,6 +1,7 @@
 import * as PIXI from 'pixi.js';
 import { AssetLoader } from '../utils/AssetLoader';
 import {BlurFilter, Sprite, Texture} from "pixi.js";
+import gsap from 'gsap';
 
 const SYMBOL_TEXTURES = [
     'symbol1.png',
@@ -23,6 +24,7 @@ export class Reel {
     private isSpinning: boolean = false;
     private position: number;
     private blurFilter: BlurFilter | undefined;
+    public event: CustomEvent = new CustomEvent('snapGrid');
 
     constructor(symbolCount: number, symbolSize: number) {
         this.container = new PIXI.Container();
@@ -58,18 +60,24 @@ export class Reel {
     private createRandomSymbol(symbolIndex: number): Sprite {
         // Get a random symbol texture
         const texture: Texture = this.getRandomSymbolTexture();
-        // Create a sprite with the texture
-        const symbol: Sprite = new Sprite(texture);
-        symbol.scale.x = symbol.scale.y = Math.min(this.symbolSize / symbol.width, this.symbolSize / symbol.height);
-        symbol.x = symbolIndex * this.symbolSize;
-
-        return symbol;
+        return this.createSymbol(symbolIndex, texture);
     }
 
     private getRandomSymbolTexture(): Texture {
         const randomTexture = SYMBOL_TEXTURES[Math.floor(Math.random() * SYMBOL_TEXTURES.length)];
 
         return AssetLoader.getTexture(randomTexture);
+    }
+
+    private createSymbol(symbolIndex: number, texture: Texture): Sprite {
+        // Create a sprite with the texture
+        const symbol: Sprite = new Sprite(texture);
+        symbol.anchor.set(0.5);
+        symbol.scale.x = symbol.scale.y = Math.min(this.symbolSize / symbol.width, this.symbolSize / symbol.height);
+        symbol.x = symbolIndex * this.symbolSize  + this.symbolSize / 2;
+        symbol.y = this.symbolSize / 2;
+
+        return symbol;
     }
 
     private createBlurFilter(): void {
@@ -104,7 +112,7 @@ export class Reel {
         for (let j = 0; j < this.symbols.length; j++) {
             const symbol = this.symbols[j];
             const symbolPosition = ((j + this.position) % this.symbols.length);
-            symbol.x = symbolPosition * this.symbolSize;
+            symbol.x = symbolPosition * this.symbolSize + this.symbolSize / 2;
 
             // Wrap around if symbol goes off screen
             if (symbol.x < -this.symbolSize * 2) {
@@ -135,8 +143,9 @@ export class Reel {
         for (let j = 0; j < this.symbols.length; j++) {
             const symbol = this.symbols[j];
             const symbolPosition = ((j + this.position) % this.symbols.length);
-            symbol.x = symbolPosition * this.symbolSize;
+            symbol.x = symbolPosition * this.symbolSize + this.symbolSize / 2;
         }
+        window.dispatchEvent(this.event);
     }
 
     public startSpin(): void {
@@ -151,5 +160,27 @@ export class Reel {
         this.isSpinning = false;
         // The reel will gradually slow down in the update method
         this.container.filters = []; // Remove filter when stopped
+    }
+
+    public playSymbolsWinAnimation(symbolIds: number[], onCompleteAnimation: Function | null): void {
+        const sortedSymbols: Sprite[] = this.symbols.sort((a, b) => a.x - b.x);
+        let onCompleteCallback: any = null;
+        symbolIds.forEach((symbolId: number, index: number) => {
+            if (symbolId === 1) {
+                const isFinalWinSymbol = symbolIds.slice(index + 1).indexOf(1) === -1;
+                if (isFinalWinSymbol) {
+                    onCompleteCallback = onCompleteAnimation;
+                }
+                let symbolIndex = index + 1;
+                gsap.to(sortedSymbols[symbolIndex].scale, {
+                    x: 1.5,
+                    y: 1.5,
+                    duration: 0.5,
+                    repeat: 1,
+                    yoyo: true,
+                    onComplete: onCompleteCallback
+                });
+            }
+        });
     }
 }
