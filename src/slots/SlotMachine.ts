@@ -24,6 +24,8 @@ export class SlotMachine {
     private winAnimation: Spine | null = null;
     private soundPlayer: SoundPlayer;
     private reelHeight: number;
+    private isFreeSpins: boolean = false;
+    private nrOfFreeSpins: number = 0;
 
     constructor(config: SlotMachineConfig, screenWidth: number, screenHeight: number, soundPlayer: SoundPlayer) {
         this.config = config;
@@ -170,6 +172,30 @@ export class SlotMachine {
     private checkWin(): void {
         // Simple win check - just for demonstration
         const randomWin = Math.random() < this.config.CHANCE_OF_WINNING; // chance of winning
+        if (!this.isFreeSpins) {
+            const freeSpinsWin = Math.random() < this.config.CHANCE_OF_FREE_SPINS; // chance of winning FS
+
+            if (freeSpinsWin) {
+                console.log('Start FS');
+                this.isFreeSpins = true;
+                this.nrOfFreeSpins++;
+                this.spin();
+                return;
+            }
+        } else {
+            if (this.nrOfFreeSpins > 0) {
+                if (this.nrOfFreeSpins < this.config.NR_OF_FREE_SPINS) {
+                    console.log('continue FS' + this.nrOfFreeSpins);
+                    this.nrOfFreeSpins++;
+                    this.spin();
+                    return;
+                } else {
+                    console.log('End FS' + this.nrOfFreeSpins);
+                    this.isFreeSpins = false;
+                    this.nrOfFreeSpins = 0;
+                }
+            }
+        }
 
         if (randomWin) {
             this.soundPlayer.play('win');
