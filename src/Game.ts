@@ -3,6 +3,7 @@ import { SlotMachine } from './slots/SlotMachine';
 import { AssetLoader } from './utils/AssetLoader';
 import { UI } from './ui/UI';
 import {defaultSlotConfig} from "./slots/SlotMachineConfig";
+import {FreeSpins} from "./slots/FreeSpins/FreeSpins";
 
 const APP_WIDTH = 1280;
 const APP_HEIGHT = 800;
@@ -21,6 +22,7 @@ export class Game {
             resolution: window.devicePixelRatio || 1,
             autoDensity: true,
         });
+         (globalThis as any).__PIXI_APP__ = this.app; // eslint-disable-line
 
         const gameContainer = document.getElementById('game-container');
         if (gameContainer) {
@@ -42,7 +44,11 @@ export class Game {
             await this.assetLoader.loadAssets();
             const soundPlayer = await this.assetLoader.loadSounds();
 
-            this.slotMachine = new SlotMachine(defaultSlotConfig, APP_WIDTH, APP_HEIGHT, soundPlayer);
+            let freeSpins = undefined;
+            if (defaultSlotConfig.HAS_FREE_SPINS) {
+                freeSpins = new FreeSpins(defaultSlotConfig, APP_WIDTH, APP_HEIGHT);
+            }
+            this.slotMachine = new SlotMachine(defaultSlotConfig, APP_WIDTH, APP_HEIGHT, soundPlayer, freeSpins);
             this.app.stage.addChild(this.slotMachine.container);
 
             this.ui = new UI(this.app, this.slotMachine, soundPlayer);
@@ -50,6 +56,10 @@ export class Game {
 
             this.app.stage.addChild(this.slotMachine.winAnimationContainer);
             this.app.ticker.add(this.update.bind(this));
+
+            if (freeSpins) {
+                this.app.stage.addChild(freeSpins.container);
+            }
 
             console.log('Game initialized successfully');
         } catch (error) {

@@ -19,6 +19,7 @@ export class UI {
         this.slotMachine = slotMachine;
         this.soundPlayer = soundPlayer;
         this.container = new PIXI.Container();
+        this.container.name = 'UILayer';
 
         this.createSpinButton();
     }

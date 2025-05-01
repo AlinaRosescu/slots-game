@@ -5,7 +5,7 @@ import {SoundPlayer} from '../utils/SoundPlayer';
 import { AssetLoader } from '../utils/AssetLoader';
 import {Spine} from "pixi-spine";
 import {SlotMachineConfig} from "./SlotMachineConfig";
-import {FreeSpins} from "./FreeSpins";
+import {FreeSpins} from "./FreeSpins/FreeSpins";
 
 const POSITION_OFFSET = 20;
 const DEFAULT_FRAME_SPINE_WIDTH = 1242;
@@ -28,16 +28,21 @@ export class SlotMachine {
     private nrOfReelsFinished: number = 0;
     private freeSpins: FreeSpins | undefined;
 
-    constructor(config: SlotMachineConfig, screenWidth: number, screenHeight: number, soundPlayer: SoundPlayer) {
+    constructor(config: SlotMachineConfig, screenWidth: number, screenHeight: number, soundPlayer: SoundPlayer, freeSpins: FreeSpins | undefined) {
         this.config = config;
         this.reelHeight = this.config.SYMBOL_SIZE;
         this.soundPlayer = soundPlayer;
         this.container = new PIXI.Container();
+        this.container.name = 'ReelsLayer';
         this.reelsContainer = new PIXI.Container();
+        this.reelsContainer.name = 'Reels';
         this.winAnimationContainer = new PIXI.Container();
+        this.winAnimationContainer.name = 'WinAnimationLayer';
         this.reels = [];
-        if (this.config.HAS_FREE_SPINS) {
-            this.freeSpins = new FreeSpins(this.config.NR_OF_FREE_SPINS);
+        this.freeSpins = freeSpins;
+        if (this.freeSpins) {
+            window.addEventListener('startFreeSpinsEvent', this.startFreeSpins.bind(this));
+            window.addEventListener('endFreeSpinsEvent', this.endFreeSpins.bind(this));
         }
 
         // Center the slot machine
@@ -190,15 +195,15 @@ export class SlotMachine {
 
                 if (freeSpinsWin) {
                     this.freeSpins.start();
-                    this.spin();
-                    return;
                 }
             } else {
                 if (this.freeSpins.continue()) {
                     this.spin();
-                    return;
+                } else {
+                    this.freeSpins.end();
                 }
             }
+            return;
         }
 
         if (randomWin) {
@@ -286,6 +291,17 @@ export class SlotMachine {
             }
         } catch (error) {
             console.error('Error initializing spine animations:', error);
+        }
+    }
+
+    private startFreeSpins(): void {
+        this.spin();
+    }
+
+    private endFreeSpins(): void {
+        if (this.spinButton) {
+            this.spinButton.texture = AssetLoader.getTexture('button_spin.png');
+            this.spinButton.interactive = true;
         }
     }
 }

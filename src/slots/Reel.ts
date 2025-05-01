@@ -24,10 +24,11 @@ export class Reel {
     private isSpinning: boolean = false;
     private position: number;
     private blurFilter: BlurFilter | undefined;
-    public event: CustomEvent = new CustomEvent('snapGrid');
+    public snapGridEvent: CustomEvent = new CustomEvent('snapGrid');
 
     constructor(symbolCount: number, symbolSize: number) {
         this.container = new PIXI.Container();
+        this.container.name = 'Reel';
         this.symbols = [];
         this.symbolSize = symbolSize;
         this.symbolCount = symbolCount;
@@ -145,7 +146,7 @@ export class Reel {
             const symbolPosition = ((j + this.position) % this.symbols.length);
             symbol.x = symbolPosition * this.symbolSize + this.symbolSize / 2;
         }
-        window.dispatchEvent(this.event);
+        window.dispatchEvent(this.snapGridEvent);
     }
 
     public startSpin(): void {
