@@ -8,6 +8,7 @@ export class FreeSpinsStartPopup {
     public positionOffset: number;
     public config: SlotMachineConfig;
     public startFreeSpinsEvent: CustomEvent = new CustomEvent('startFreeSpinsEvent');
+    private winText: Text | undefined;
 
     constructor(parent: Container, config: SlotMachineConfig, positionOffset: number) {
         this.config = config;
@@ -37,14 +38,17 @@ export class FreeSpinsStartPopup {
     private addPopupTexts() {
         let congratulationsText: Text = this.createText('Congratulations!', this.popUp.width, 100);
         congratulationsText.y = 100;
-        let winText: Text = this.createText(`${this.config.NR_OF_FREE_SPINS} Free Spins`, this.popUp.width, 80);
-        winText.y = this.popUp.height / 2 - winText.height / 2;
+        this.winText = this.createText(`0 Free Spins`, this.popUp.width, 80);
+        this.winText.y = this.popUp.height / 2 - this.winText.height / 2;
         let continueText: Text = this.createText(`Click to continue`, this.popUp.width, 50);
-        continueText.y = this.popUp.height - winText.height / 2 - 100;
-        this.popUp.addChild(congratulationsText, winText, continueText);
+        continueText.y = this.popUp.height - this.winText.height / 2 - 100;
+        this.popUp.addChild(congratulationsText, this.winText, continueText);
     }
 
-    public showPopup(): void {
+    public showPopup(freeSpinsAwarded: number): void {
+        if (this.winText ) {
+            this.winText.text = `${freeSpinsAwarded} Free Spins`;
+        }
         gsap.to(this.popUp,
             {
                 alpha: 1,
