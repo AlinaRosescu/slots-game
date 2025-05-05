@@ -1,7 +1,8 @@
 import * as PIXI from 'pixi.js';
-import { AssetLoader } from '../utils/AssetLoader';
-import {BlurFilter, Sprite, Texture} from "pixi.js";
+import {BlurFilter, Sprite, Texture} from 'pixi.js';
+import {AssetLoader} from '../utils/AssetLoader';
 import gsap from 'gsap';
+import {SymbolType} from "../utils/SymbolsConfig";
 
 const SYMBOL_TEXTURES = [
     'symbol1.png',
@@ -12,8 +13,8 @@ const SYMBOL_TEXTURES = [
 ];
 
 const SPIN_SPEED = 50; // Pixels per frame
-const SLOWDOWN_RATE = 0.95; // Rate at which the reel slows down
 const FPS = 60; // Frames per second
+const REEl_STOP_THRESHOLD = 10;
 
 export class Reel {
     public container: PIXI.Container;
@@ -25,21 +26,26 @@ export class Reel {
     private position: number;
     private blurFilter: BlurFilter | undefined;
     public snapGridEvent: CustomEvent = new CustomEvent('snapGrid');
+    private finalSymbolIds: SymbolType[] | undefined;
+    private finalSymbolsAdded: boolean = false;
+    private reelId: number;
+    private finalSymbolPositionDistance: number = 0;
 
-    constructor(symbolCount: number, symbolSize: number) {
+    constructor(id: number, symbolCount: number, symbolSize: number) {
         this.container = new PIXI.Container();
         this.container.name = 'Reel';
         this.symbols = [];
         this.symbolSize = symbolSize;
         this.symbolCount = symbolCount;
         this.position = 0;
+        this.reelId = id;
 
-        this.createSymbols();
+        this.addRandomSymbols();
 
         this.createBlurFilter();
     }
 
-    private createSymbols(): void {
+    private addRandomSymbols(): void {
         // Create symbols for the reel, arranged horizontally
         const topSymbol: Sprite = this.createRandomSymbol(-1);
         this.addSymbol(topSymbol);
@@ -91,50 +97,68 @@ export class Reel {
     public update(delta: number): void {
         if (!this.isSpinning && this.speed === 0) return;
 
-        // Move symbols based on speed
-        this.position += this.speed * delta / FPS;
+        this.moveSymbols(delta);
 
-        // Move symbols horizontally
-        this.moveSymbols();
+        if (!this.finalSymbolsAdded) {
+            this.wrapSymbols();
+        }
+        this.updateBlurFilter();
+        if (!this.isSpinning) {
+            if (!this.isSpinning && !this.finalSymbolsAdded) {
+                this.addFinalSymbols();
+            }
+            this.finalSymbolPositionDistance -= this.speed * delta / FPS * this.symbolSize;
+            this.speed = this.finalSymbolPositionDistance / FPS;
 
-        // If we're stopping, slow down the reel
-        if (!this.isSpinning && this.speed > 0) {
-            this.speed *= SLOWDOWN_RATE;
+             // If speed is very low, stop completely and snap to grid
+             if (this.finalSymbolPositionDistance < REEl_STOP_THRESHOLD) {
+                 this.speed = 0;
+                 this.snapToGrid();
+             }
+        }
+    }
 
-            // If speed is very low, stop completely and snap to grid
-            if (this.speed < 0.5) {
-                this.speed = 0;
-                this.snapToGrid();
+    private moveSymbols(delta: number): void {
+        for (let j = 0; j < this.symbols.length; j++) {
+            const symbol = this.symbols[j];
+            symbol.x += this.speed * delta / FPS * this.symbolSize;
+        }
+    }
+
+    private updateBlurFilter(): void {
+        // Update blur based on speed
+        if (this.blurFilter) {
+            this.blurFilter.blurY = this.speed / 5;
+        }
+    }
+
+    private wrapSymbols(): void {
+        for (let i = 0; i < this.symbolCount + 2; i++) {
+            // Wrap around if symbol goes off screen
+            if (this.symbols[i].x > this.symbolSize * this.symbolCount + 1) {
+                this.symbols[i].x -= this.symbolSize * this.symbols.length;
+                if (!this.isSpinning || (this.finalSymbolIds && this.finalSymbolIds.length > 0)) {
+                    // Randomize symbol if it's out of view
+                    this.symbols[i].texture = this.getRandomSymbolTexture();
+                }
             }
         }
     }
 
-    private moveSymbols(): void {
-        for (let j = 0; j < this.symbols.length; j++) {
-            const symbol = this.symbols[j];
-            const symbolPosition = ((j + this.position) % this.symbols.length);
-            symbol.x = symbolPosition * this.symbolSize + this.symbolSize / 2;
-
-            // Wrap around if symbol goes off screen
-            if (symbol.x < -this.symbolSize * 2) {
-                symbol.x += this.symbolSize * this.symbols.length;
-            } else if (symbol.x > this.symbolSize * this.symbolCount) {
-                symbol.x -= this.symbolSize * this.symbols.length;
-            }
-
-            // Randomize symbol if it's out of view
-            if (symbol.x < -this.symbolSize ||
-                symbol.x > this.symbolSize * this.symbolCount) {
-                if (this.isSpinning) {
-                    symbol.texture = this.getRandomSymbolTexture();
-                }
-            }
+    private addFinalSymbols(): void {
+        if (!this.finalSymbolIds || this.finalSymbolIds?.length === 0) {
+           return;
         }
-        // Update blur based on speed
-        if (this.blurFilter) {
-            const blurAmount = this.speed / 5;
-            this.blurFilter.blurY = blurAmount;
+        for (let i = this.finalSymbolIds.length - 1; i >= 0; i--) {
+            const texture: Texture = AssetLoader.getTexture(`symbol${this.finalSymbolIds[i]}.png`);
+            const symbol: Sprite =  this.createSymbol(i, texture);
+            symbol.name = this.finalSymbolIds[i];
+            symbol.x = Math.min(...this.symbols.map(symbol => symbol.x)) - this.symbolSize;
+            this.finalSymbolPositionDistance = i * this.symbolSize - symbol.x + this.symbolSize;
+            this.container.addChild(symbol);
+            this.symbols.unshift(symbol);
         }
+        this.finalSymbolsAdded = true;
     }
 
     private snapToGrid(): void {
@@ -143,9 +167,17 @@ export class Reel {
         // Update the symbols to match the grid position
         for (let j = 0; j < this.symbols.length; j++) {
             const symbol = this.symbols[j];
-            const symbolPosition = ((j + this.position) % this.symbols.length);
+            const symbolPosition = Math.round((symbol.x - this.symbolSize / 2) / this.symbolSize);
             symbol.x = symbolPosition * this.symbolSize + this.symbolSize / 2;
         }
+
+        // Once we've snapped to grid, we're done with this spin's server symbols
+        this.finalSymbolIds = undefined;
+        this.finalSymbolsAdded = false;
+        this.symbols.splice(this.symbolCount)
+        this.addSymbol(this.createRandomSymbol(this.symbolCount))
+        this.addSymbol(this.createRandomSymbol(this.symbolCount + 1))
+
         window.dispatchEvent(this.snapGridEvent);
     }
 
@@ -158,24 +190,28 @@ export class Reel {
     }
 
     public stopSpin(): void {
-        this.isSpinning = false;
+          this.isSpinning = false;
         // The reel will gradually slow down in the update method
         this.container.filters = []; // Remove filter when stopped
     }
 
-    public playSymbolsWinAnimation(symbolIds: number[], onCompleteAnimation: Function | null): void {
+    public addFinalSymbolIDs(symbolIds: SymbolType[] | undefined): void {
+        this.finalSymbolIds = symbolIds;
+        console.log(this.finalSymbolIds);
+    }
+
+    public playSymbolsWinAnimation(winIds: number[], symbolType: SymbolType, onCompleteAnimation: Function | null): void {
         const sortedSymbols: Sprite[] = this.symbols.sort((a, b) => a.x - b.x);
         let onCompleteCallback: any = null;
-        symbolIds.forEach((symbolId: number, index: number) => {
-            if (symbolId === 1) {
-                const isFinalWinSymbol = symbolIds.slice(index + 1).indexOf(1) === -1;
+        winIds.forEach((symbolId: number, index: number) => {
+            if (Number(symbolId) === 1 && sortedSymbols[index].name === symbolType) {
+                const isFinalWinSymbol = winIds.slice(index + 1).indexOf(1) === -1;
                 if (isFinalWinSymbol) {
                     onCompleteCallback = onCompleteAnimation;
                 }
-                let symbolIndex = index + 1;
-                gsap.to(sortedSymbols[symbolIndex].scale, {
-                    x: 1.5,
-                    y: 1.5,
+                gsap.to(sortedSymbols[index].scale, {
+                    x: 1.25,
+                    y: 1.25,
                     duration: 0.5,
                     repeat: 1,
                     yoyo: true,

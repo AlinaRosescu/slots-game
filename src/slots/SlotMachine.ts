@@ -68,7 +68,7 @@ export class SlotMachine {
         window.addEventListener('snapGrid', this.onReelSnapGrid.bind(this));
     }
 
-    private onReelSnapGrid() {
+    private async onReelSnapGrid() {
         this.nrOfReelsFinished++;
         // If this is the last reel, check for wins and enable spin button
         if (this.nrOfReelsFinished === this.config.REEL_COUNT) {
@@ -76,9 +76,10 @@ export class SlotMachine {
             // Stop spin sound
             this.soundPlayer.stop('Reel spin');
             this.isSpinning = false;
-            this.checkWin();
+            await this.checkWin();
+            this.checkFreeSpins();
 
-            if (this.spinButton) {
+            if (this.spinButton && !this.server.isFreeSpins) {
                 if (this.freeSpins && this.freeSpins.isFreeSpins) {
                     return;
                 }
@@ -111,7 +112,7 @@ export class SlotMachine {
         this.container.addChild(this.reelsContainer);
         // Create each reel
         for (let i = 0; i < this.config.REEL_COUNT; i++) {
-            const reel = new Reel(this.config.SYMBOLS_PER_REEL, this.config.SYMBOL_SIZE);
+            const reel = new Reel(i, this.config.SYMBOLS_PER_REEL, this.config.SYMBOL_SIZE);
             reel.container.y = i * (this.reelHeight + this.config.REEL_SPACING);
             this.reelsContainer.addChild(reel.container);
             this.reels.push(reel);
@@ -201,71 +202,69 @@ export class SlotMachine {
         });
     }
 
-     private async checkWin(): Promise<void> {
-        // Simple win check - just for demonstration
-        const randomWin = Math.random() < this.config.CHANCE_OF_WINNING; // chance of winning
+    private checkFreeSpins() {
+        if (!this.serverResult) return;
 
-        if (this.freeSpins) {
-            if (!this.freeSpins.isFreeSpins) {
-                const freeSpinsWin = Math.random() < this.config.CHANCE_OF_FREE_SPINS; // chance of winning FS
-
-                if (freeSpinsWin) {
-                    this.freeSpins.start();
-                }
-            } else {
-                if (this.freeSpins.continue()) {
-                    this.spin();
-                } else {
-                    this.freeSpins.end();
-                }
+        if (this.server.isFreeSpins) {
+             if (this.serverResult.freeSpinsState !== null) {
+                 if (this.serverResult.freeSpinsState === 'start') {
+                     this.freeSpins?.start(this.serverResult.freeSpinsAwarded);
+                 } else if (this.serverResult.freeSpinsState === 'end') {
+                     this.freeSpins?.end();
+                 }
+             } else {
+                 this.spin();
             }
-            return;
         }
+    }
 
-        if (randomWin) {
+    private async checkWin(): Promise<void> {
+        if (!this.serverResult) return;
+
+        if (this.serverResult.totalWin > 0) {
             this.soundPlayer.play('win');
             console.log('Winner!');
-            let randomWinline = this.getRandomWinline();
-            await this.playSymbolWinAnimation(randomWinline);
+            await this.playSymbolWinAnimation(this.serverResult.winningLines);
             // Play the win animation found in "big-boom-h" spine
-            this.playWinAnimation();
+            await this.playWinAnimation();
         }
     }
 
-    private getRandomWinline():number[] {
-        const randomWinlineId: number = Math.floor(Math.random() * this.config.WINLINES.length);
-        return this.config.WINLINES[randomWinlineId];
-    }
-
-    private playSymbolWinAnimation(winline: number[]): Promise<void> {
+    private playSymbolWinAnimation(winLines: WinLineResult[]): Promise<void> {
         return new Promise((resolve) => {
             let onComplete: Function | null = null;
             this.reels.forEach((reel: Reel, index: number) => {
-                const reelStartIndex = index * this.config.SYMBOLS_PER_REEL;
-                const reelWinLine: number[] = winline.slice(reelStartIndex, reelStartIndex + this.config.SYMBOLS_PER_REEL);
-                if (index === this.reels.length - 1) {
-                    onComplete = resolve;
-                }
-                reel.playSymbolsWinAnimation(reelWinLine, onComplete);
+                winLines.forEach((winLineResult: WinLineResult) => {
+                    if (winLineResult.win > 0) {
+                        const reelStartIndex = index * this.config.SYMBOLS_PER_REEL;
+                        const reelWinLine: number[] = winLineResult.winLine.slice(reelStartIndex, reelStartIndex + this.config.SYMBOLS_PER_REEL);
+                        reel.playSymbolsWinAnimation(reelWinLine, winLineResult.symbolType, resolve);
+                    }
+                })
             });
         });
     }
 
-    private playWinAnimation(): void {
-        if (this.winAnimation) {
-            if (this.winAnimation.state.hasAnimation('start')) {
-                this.winAnimation.state.setAnimation(0, 'start', false);
-                this.winAnimation.state.addListener({
-                    complete: () => {
-                        if (this.winAnimation) {
-                            this.winAnimation.state.clearTrack(0);
-                            this.winAnimation.visible = false;
+    private playWinAnimation(): Promise<void> {
+        return new Promise((resolve) => {
+            if (this.winAnimation) {
+                if (this.winAnimation.state.hasAnimation('start')) {
+                    this.winAnimation.state.setAnimation(0, 'start', false);
+                    this.winAnimation.state.addListener({
+                        complete: () => {
+                            if (this.winAnimation) {
+                                this.winAnimation.state.clearTrack(0);
+                                this.winAnimation.visible = false;
+                            }
+                            resolve();
                         }
-                    }
-                });
-                this.winAnimation.visible = true;
+                    });
+                    this.winAnimation.visible = true;
+                }
+            } else {
+                resolve();
             }
-        }
+        });
     }
 
     public setSpinButton(button: PIXI.Sprite): void {
