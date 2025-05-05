@@ -4,6 +4,7 @@ import { AssetLoader } from './utils/AssetLoader';
 import { UI } from './ui/UI';
 import {defaultSlotConfig} from "./slots/SlotMachineConfig";
 import {FreeSpins} from "./slots/FreeSpins/FreeSpins";
+import {ServerData} from "./slots/Server/ServerData";
 
 const APP_WIDTH = 1280;
 const APP_HEIGHT = 800;
@@ -44,11 +45,13 @@ export class Game {
             await this.assetLoader.loadAssets();
             const soundPlayer = await this.assetLoader.loadSounds();
 
+            const server: ServerData = new ServerData(defaultSlotConfig);
+
             let freeSpins = undefined;
             if (defaultSlotConfig.HAS_FREE_SPINS) {
                 freeSpins = new FreeSpins(defaultSlotConfig, APP_WIDTH, APP_HEIGHT);
             }
-            this.slotMachine = new SlotMachine(defaultSlotConfig, APP_WIDTH, APP_HEIGHT, soundPlayer, freeSpins);
+            this.slotMachine = new SlotMachine(defaultSlotConfig, APP_WIDTH, APP_HEIGHT, soundPlayer, server, freeSpins);
             this.app.stage.addChild(this.slotMachine.container);
 
             this.ui = new UI(this.app, this.slotMachine, soundPlayer);

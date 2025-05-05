@@ -6,6 +6,9 @@ import { AssetLoader } from '../utils/AssetLoader';
 import {Spine} from "pixi-spine";
 import {SlotMachineConfig} from "./SlotMachineConfig";
 import {FreeSpins} from "./FreeSpins/FreeSpins";
+import {ServerData, ServerResult} from "./Server/ServerData";
+import {SymbolType} from "../utils/SymbolsConfig";
+import {WinLineResult} from "./Server/Winline";
 
 const POSITION_OFFSET = 20;
 const DEFAULT_FRAME_SPINE_WIDTH = 1242;
@@ -27,8 +30,10 @@ export class SlotMachine {
     private reelHeight: number;
     private nrOfReelsFinished: number = 0;
     private freeSpins: FreeSpins | undefined;
+    private server: ServerData;
+    private serverResult: ServerResult | undefined;
 
-    constructor(config: SlotMachineConfig, screenWidth: number, screenHeight: number, soundPlayer: SoundPlayer, freeSpins: FreeSpins | undefined) {
+    constructor(config: SlotMachineConfig, screenWidth: number, screenHeight: number, soundPlayer: SoundPlayer, server: ServerData, freeSpins: FreeSpins | undefined) {
         this.config = config;
         this.reelHeight = this.config.SYMBOL_SIZE;
         this.soundPlayer = soundPlayer;
@@ -44,6 +49,7 @@ export class SlotMachine {
             window.addEventListener('startFreeSpinsEvent', this.startFreeSpins.bind(this));
             window.addEventListener('endFreeSpinsEvent', this.endFreeSpins.bind(this));
         }
+        this.server = server;
 
         // Center the slot machine
         this.container.x = this.winAnimationContainer.x =
@@ -154,6 +160,7 @@ export class SlotMachine {
     public spin(): void {
         if (this.isSpinning) return;
 
+        this.serverResult = this.server.getServerData(this.config.BET);
         this.isSpinning = true;
 
         // Play spin sound
@@ -170,11 +177,20 @@ export class SlotMachine {
                 this.reels[i].startSpin();
             }, i * this.config.SPIN_DELAY);
         }
-
+        this.addReelsServerData();
         // Stop all reels after a delay
         setTimeout(() => {
             this.stopSpin();
         }, this.config.SPIN_DURATION + (this.reels.length - 1) * this.config.SPIN_DELAY);
+    }
+
+    private addReelsServerData(): void {
+        const serverSymbols: SymbolType[][] | undefined = this.serverResult?.symbols;
+        this.reels.forEach((reel: Reel, index) => {
+            if (serverSymbols) {
+                reel.addFinalSymbolIDs(serverSymbols[index]);
+            }
+        });
     }
 
     public stopSpin(): void {
