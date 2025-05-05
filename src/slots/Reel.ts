@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js';
 import {BlurFilter, Sprite, Texture} from 'pixi.js';
 import {AssetLoader} from '../utils/AssetLoader';
-import gsap from 'gsap';
+import {Back, gsap} from "gsap";
 import {SymbolType} from "../utils/SymbolsConfig";
 
 const SYMBOL_TEXTURES = [
@@ -164,13 +164,15 @@ export class Reel {
     private snapToGrid(): void {
         // Snap symbols to horizontal grid positions
         this.position = Math.round(this.position);
-        // Update the symbols to match the grid position
-        for (let j = 0; j < this.symbols.length; j++) {
-            const symbol = this.symbols[j];
+        // Animate the symbols to their final position
+        this.symbols.forEach((symbol: Sprite, i: number) => {
             const symbolPosition = Math.round((symbol.x - this.symbolSize / 2) / this.symbolSize);
-            symbol.x = symbolPosition * this.symbolSize + this.symbolSize / 2;
-        }
-
+            gsap.to(symbol, {
+                x: symbolPosition * this.symbolSize + this.symbolSize / 2,
+                duration: 0.5,
+                ease: Back.easeOut
+            });
+        });
         // Once we've snapped to grid, we're done with this spin's server symbols
         this.finalSymbolIds = undefined;
         this.finalSymbolsAdded = false;
